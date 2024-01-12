@@ -106,7 +106,7 @@ def get_bearer_token(user, expires_in=3600):
       "alg": "HS256"
   }
   id_token = {
-      "aud": "bonatraringdev-sscuv",
+      "aud": frappe.conf.get("ring_aud")
       "exp":  datetime.utcnow()+timedelta(seconds=30*24*60*60),
       "sub": {"token":token["access_token"],"user":user},
       "iss": "frappe_server_url",
