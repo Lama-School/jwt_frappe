@@ -6,6 +6,7 @@ from frappe import _
 from frappe.auth import LoginManager
 from frappe.utils import cint, get_url, get_datetime
 from frappe.utils.password import check_password, passlibctx, update_password
+from datetime import datetime,timedelta
 
 
 
@@ -92,11 +93,30 @@ def get_bearer_token(user, expires_in=3600):
   client = get_oath_client()
   token = frappe._dict({
       'access_token': random_token_generator(None),
-      'expires_in': expires_in,
+      'expires_in': 30*24*60*60,
       'token_type': 'Bearer',
       'scopes': client.scopes,
       'refresh_token': random_token_generator(None)
   })
+  
+
+  # ID Token
+  id_token_header = {
+      "typ": "jwt",
+      "alg": "HS256"
+  }
+  id_token = {
+      "aud": "bonatraringdev-sscuv",
+      "exp":  datetime.utcnow()+timedelta(seconds=30*24*60*60),
+      "sub": {"token":token["access_token"],"user":user},
+      "iss": "frappe_server_url",
+      "at_hash": frappe.oauth.calculate_at_hash(token.access_token, hashlib.sha256)
+  }
+  id_token_encoded = jwt.encode(
+      id_token, frappe.conf.get("jwt_client_secret"), algorithm='HS256', headers=id_token_header)
+  id_token_encoded = frappe.safe_decode(id_token_encoded)
+  token.id_token = id_token_encoded
+  frappe.flags.jwt = id_token_encoded
   bearer_token = frappe.new_doc("OAuth Bearer Token")
   bearer_token.client = client.name
   bearer_token.scopes = token['scopes']
@@ -106,24 +126,7 @@ def get_bearer_token(user, expires_in=3600):
   bearer_token.user = user
   bearer_token.save(ignore_permissions=True)
   frappe.db.commit()
-
-  # ID Token
-  id_token_header = {
-      "typ": "jwt",
-      "alg": "HS256"
-  }
-  id_token = {
-      "aud": "token_client",
-      "exp": int((frappe.db.get_value("OAuth Bearer Token", token.access_token, "expiration_time") - frappe.utils.datetime.datetime(1970, 1, 1)).total_seconds()),
-      "sub": frappe.db.get_value("User Social Login", {"parent": bearer_token.user, "provider": "frappe"}, "userid"),
-      "iss": "frappe_server_url",
-      "at_hash": frappe.oauth.calculate_at_hash(token.access_token, hashlib.sha256)
-  }
-  id_token_encoded = jwt.encode(
-      id_token, "client_secret", algorithm='HS256', headers=id_token_header)
-  id_token_encoded = frappe.safe_decode(id_token_encoded)
-  token.id_token = id_token_encoded
-  frappe.flags.jwt = id_token_encoded
+  frappe.log_error("token",token)
   return token
 
 

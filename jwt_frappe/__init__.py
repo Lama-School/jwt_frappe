@@ -17,9 +17,11 @@ def on_session_creation(login_manager):
   from .utils.auth import get_bearer_token
   if frappe.form_dict.get('use_jwt') and cint(frappe.form_dict.get('use_jwt')):
     expires_in = 604800
-    frappe.local.response['token'] = get_bearer_token(
+    token = get_bearer_token(
       user=login_manager.user, expires_in=expires_in
-    )["access_token"]
+    )
+    frappe.local.response['token']= token['access_token']
+    frappe.local.response['jwt_token'] = token['id_token']
     frappe.flags.jwt_clear_cookies = True
 
 @frappe.whitelist()
