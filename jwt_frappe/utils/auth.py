@@ -110,7 +110,8 @@ def get_bearer_token(user, expires_in=3600):
       "exp":  datetime.utcnow()+timedelta(seconds=30*24*60*60),
       "sub": {"token":token["access_token"],"user":user},
       "iss": "frappe_server_url",
-      "at_hash": frappe.oauth.calculate_at_hash(token.access_token, hashlib.sha256)
+      "at_hash": frappe.oauth.calculate_at_hash(token.access_token, hashlib.sha256),
+      "UID":user 
   }
   id_token_encoded = jwt.encode(
       id_token, frappe.conf.get("jwt_client_secret"), algorithm='HS256', headers=id_token_header)
