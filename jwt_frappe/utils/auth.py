@@ -7,6 +7,7 @@ from frappe.auth import LoginManager
 from frappe.utils import cint, get_url, get_datetime
 from frappe.utils.password import check_password, passlibctx, update_password
 from datetime import datetime,timedelta
+import json
 
 
 
@@ -108,7 +109,7 @@ def get_bearer_token(user, expires_in=3600):
   id_token = {
       "aud": frappe.conf.get("ring_aud"),
       "exp":  datetime.utcnow()+timedelta(seconds=30*24*60*60),
-      "sub": {"token":token["access_token"],"user":user},
+      "sub": json.dumps({"token":token["access_token"],"user":user}),
       "iss": "frappe_server_url",
       "at_hash": frappe.oauth.calculate_at_hash(token.access_token, hashlib.sha256),
       "UID":user 
