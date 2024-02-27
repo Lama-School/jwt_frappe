@@ -100,7 +100,7 @@ def get_bearer_token(user, expires_in=3600):
       'refresh_token': random_token_generator(None)
   })
   
-
+  user_details = frappe.get_doc("User",user)
   # ID Token
   id_token_header = {
       "typ": "jwt",
@@ -112,7 +112,8 @@ def get_bearer_token(user, expires_in=3600):
       "sub": json.dumps({"token":token["access_token"],"user":user}),
       "iss": "frappe_server_url",
       "at_hash": frappe.oauth.calculate_at_hash(token.access_token, hashlib.sha256),
-      "UID":user 
+      "UID":user,
+      "name": user_details.full_name
   }
   id_token_encoded = jwt.encode(
       id_token, frappe.conf.get("jwt_client_secret"), algorithm='HS256', headers=id_token_header)
@@ -128,7 +129,6 @@ def get_bearer_token(user, expires_in=3600):
   bearer_token.user = user
   bearer_token.save(ignore_permissions=True)
   frappe.db.commit()
-  frappe.log_error("token",token)
   return token
 
 
